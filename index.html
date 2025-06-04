@@ -210,8 +210,6 @@
 
         // --- RENDERIZAÇÃO DOS GRÁFICOS (Chart.js) ---
         function renderMqlPieChart() {
-            // Removida a primeira instanciação de new Chart que era redundante e poderia causar problemas.
-            // Mantida apenas a segunda instanciação que é a versão corrigida.
             new Chart(document.getElementById('mqlPieChart').getContext('2d'), { 
                 type: 'pie',
                 data: {
@@ -331,12 +329,12 @@
             const resultsDiv = document.getElementById(`results-${containerId}`);
             const resultsList = resultsDiv.querySelector('.ai-results-list');
             const btnIcon = button.querySelector('.btn-icon-ai');
-            const btnTextSpan = button.querySelector('.btn-text-ai'); // Corrigido para btnTextSpan
+            const btnTextSpan = button.querySelector('.btn-text-ai'); 
 
             // Start loading
             btnIcon.innerHTML = icons.loader2;
             btnIcon.classList.add('animate-spin');
-            btnTextSpan.textContent = 'Gerando...'; // Corrigido para btnTextSpan
+            btnTextSpan.textContent = 'Gerando...'; 
             button.disabled = true;
             errorDiv.classList.add('hidden');
             errorDiv.textContent = '';
@@ -346,7 +344,8 @@
             try {
                 let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
                 const payload = { contents: chatHistory };
-                const apiKey = ""; 
+                // CHAVE DA API ADICIONADA AQUI
+                const apiKey = "AIzaSyD5VBtOaB2SUMwTastA8UhhVAiM4WHnH4k"; 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(apiUrl, {
@@ -391,9 +390,9 @@
                 // End loading
                 btnIcon.innerHTML = icons.sparkles;
                 btnIcon.classList.remove('animate-spin');
-                if (btnTextSpan && btnTextSpan.dataset.originalText) { // Corrigido para btnTextSpan
-                    btnTextSpan.textContent = btnTextSpan.dataset.originalText; // Corrigido para btnTextSpan
-                } else if (btnTextSpan) { // Corrigido para btnTextSpan
+                if (btnTextSpan && btnTextSpan.dataset.originalText) { 
+                    btnTextSpan.textContent = btnTextSpan.dataset.originalText; 
+                } else if (btnTextSpan) { 
                     btnTextSpan.textContent = 'Gerar Novas Sugestões'; // Fallback
                 }
                 button.disabled = false;
