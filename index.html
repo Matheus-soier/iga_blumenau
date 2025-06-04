@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Insights IGA Blumenau</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .card {
+            /* Estilo base do card, Tailwind fará a maior parte */
+            transition: transform 0.3s ease-in-out;
+        }
+        .card:hover {
+            transform: scale(1.02); /* Levemente menor que o 1.05 do React para um efeito mais sutil */
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 250px;
+            width: 100%;
+        }
+        .chart-container-large {
+            height: 300px;
+        }
+        .ai-results-list {
+            max-height: 220px; 
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #38bdf8 #1e293b; /* Cor do scrollbar: thumb track */
+        }
+        .ai-results-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .ai-results-list::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+            border-radius: 10px;
+        }
+        .ai-results-list::-webkit-scrollbar-thumb {
+            background-color: #38bdf8; /* sky-500 */
+            border-radius: 10px;
+            border: 2px solid #1e293b; 
+        }
+        /* Animação de carregamento para o ícone */
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 p-4 sm:p-8 text-slate-100">
+
+    <!-- Cabeçalho -->
+    <header class="text-center mb-12">
+        <h1 class="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-emerald-400">
+            Portal de Insights IGA Blumenau
+        </h1>
+        <p class="text-slate-300 mt-2 text-lg">Análise de Público-Alvo, MQLs e Geração de Ideias com IA</p>
+    </header>
+
+    <!-- Seção de Dados Demográficos, Motivações e Argumentos Chave -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        <div id="demographicsCard" class="card bg-slate-800/70 text-gray-200 shadow-xl rounded-xl p-6"></div>
+        <div id="motivationsCard" class="card bg-slate-800/70 text-gray-200 shadow-xl rounded-xl p-6"></div>
+        <div id="keyArgumentsCard" class="card md:col-span-2 lg:col-span-1 bg-slate-800/70 text-gray-200 shadow-xl rounded-xl p-6"></div>
+    </div>
+
+    <!-- Nova Seção de Análise de MQLs -->
+    <div id="mqlAnalysisCard" class="card bg-slate-800/70 text-gray-200 shadow-xl rounded-xl p-6 mb-10"></div>
+
+    <!-- Seção de Gráficos de Público Alvo -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div id="ageDistributionCard" class="card bg-slate-800/70 shadow-xl rounded-xl p-6"></div>
+        <div id="motivationDistributionCard" class="card bg-slate-800/70 shadow-xl rounded-xl p-6"></div>
+    </div>
+    
+    <!-- Seção de Interesses Identificados -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        <div id="directInterestsCard" class="card bg-slate-800/70 shadow-xl rounded-xl p-6"></div>
+        <div id="relatedInterestsCard" class="card bg-slate-800/70 shadow-xl rounded-xl p-6"></div>
+    </div>
+
+    <!-- Seção de Funcionalidades com IA -->
+    <div class="space-y-8 mb-10">
+        <div id="aiInterestsFeatureCard" class="card bg-sky-800/30 border border-sky-700 shadow-xl rounded-xl p-6"></div>
+        <div id="aiSlogansFeatureCard" class="card bg-sky-800/30 border border-sky-700 shadow-xl rounded-xl p-6"></div>
+        <div id="aiSocialMediaFeatureCard" class="card bg-sky-800/30 border border-sky-700 shadow-xl rounded-xl p-6"></div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="text-center mt-12 py-6 border-t border-slate-700">
+        <p class="text-slate-400">&copy; <span id="currentYear"></span> Portal de Insights IGA. Gerado com assistência de IA.</p>
+    </footer>
+
+    <script>
+        // --- ÍCONES SVG (Lucide) ---
+        const icons = {
+            users: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+            lightbulb: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lightbulb"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 9 2c0 1.3.5 2.6 1.5 3.5.7.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`,
+            trendingUp: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+            target: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+            mapPin: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
+            brain: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.98-3.34 2.5 2.5 0 0 1 .28-4.32 2.5 2.5 0 0 1 2.98-1.06 2.5 2.5 0 0 1 2.98-3.34 2.5 2.5 0 0 1 1.64-2.34Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.98-3.34 2.5 2.5 0 0 0-.28-4.32 2.5 2.5 0 0 0-2.98-1.06 2.5 2.5 0 0 0-2.98-3.34 2.5 2.5 0 0 0-1.64-2.34Z"/></svg>`,
+            sparkles: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
+            loader2: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader-2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`,
+            megaphone: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-megaphone"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>`,
+            share2: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-share-2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>`
+        };
+
+        // --- DADOS ---
+        const audienceData = {
+            demographics: { age: "A partir de 16 anos. Jovens (<30 anos) para estágios internacionais. Adultos para mudança de carreira, empreendedorismo ou hobby.", gender: "Ambos os gêneros.", location: "Blumenau, SC e Vale do Itajaí." },
+            motivations: ["Profissionalização para ser chef, confeiteiro, padeiro.", "Empreendedorismo no ramo alimentício.", "Hobby e aprimoramento pessoal na culinária.", "Desenvolvimento de carreira e especialização."],
+            directInterests: ["Culinária", "Gastronomia", "Confeitaria", "Panificação", "Alta Cozinha", "Receitas", "Técnicas de Cozinha", "Cozinha Internacional"],
+            relatedInterests: ["Empreendedorismo", "Negócios de Alimentação", "Food Service", "Hotelaria e Turismo", "Educação Profissional", "Viagens (Europa)"],
+            keyArguments: ["Foco na prática ('mão na massa').", "Profissionalização e entrada no mercado.", "Oportunidade de empreender.", "Reconhecimento nacional e internacional.", "Estágios na Europa.", "Estrutura completa e material incluso."]
+        };
+        const ageData = [{ name: '16-24', 'Percentual': 40, fill: '#8884d8' }, { name: '25-34', 'Percentual': 30, fill: '#82ca9d' }, { name: '35-44', 'Percentual': 20, fill: '#ffc658' }, { name: '45+', 'Percentual': 10, fill: '#ff8042' }];
+        const motivationData = [{ name: 'Profissionalização', value: 45, fill: '#0088FE' }, { name: 'Empreendedorismo', value: 30, fill: '#00C49F' }, { name: 'Hobby/Aprimoramento', value: 15, fill: '#FFBB28' }, { name: 'Desenvolvimento Carreira', value: 10, fill: '#FF8042' }];
+        const mqlData = {
+            totalLeads: 501,
+            distribution: [{ name: 'Meta Ads', leads: 284, percentage: 56.69, fill: '#22c55e' }, { name: 'Não especificado', leads: 182, percentage: 36.33, fill: '#a855f7' }, { name: 'Google Ads', leads: 35, percentage: 6.99, fill: '#f97316' }]
+        };
+
+        // --- FUNÇÕES AUXILIARES DE RENDERIZAÇÃO ---
+        function createCardHeader(title, iconSvg) {
+            return `<div class="flex items-center text-sky-300 mb-3">${iconSvg}<h3 class="text-xl font-semibold ml-2">${title}</h3></div>`;
+        }
+
+        function createPill(text, className) {
+            return `<span class="px-3 py-1 rounded-full text-sm font-medium mr-2 mb-2 inline-block shadow-sm ${className}">${text}</span>`;
+        }
+
+        // --- RENDERIZAÇÃO INICIAL DOS DADOS ESTÁTICOS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Rodapé
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            // Card de Demografia
+            const demoCard = document.getElementById('demographicsCard');
+            demoCard.innerHTML = createCardHeader("Demografia Principal", icons.users) + `
+                <p class="mb-2"><strong>Idade:</strong> ${audienceData.demographics.age}</p>
+                <p class="mb-2"><strong>Gênero:</strong> ${audienceData.demographics.gender}</p>
+                <p><strong>Localização:</strong> ${audienceData.demographics.location}</p>`;
+
+            // Card de Motivações
+            const motiCard = document.getElementById('motivationsCard');
+            let motivationsHtml = audienceData.motivations.map(mot => `<li>${mot}</li>`).join('');
+            motiCard.innerHTML = createCardHeader("Motivações do Público", icons.lightbulb) + `<ul class="list-disc list-inside space-y-1">${motivationsHtml}</ul>`;
+
+            // Card de Argumentos Chave
+            const keyArgCard = document.getElementById('keyArgumentsCard');
+            let keyArgsHtml = audienceData.keyArguments.map(arg => `<li>${arg}</li>`).join('');
+            keyArgCard.innerHTML = createCardHeader("Argumentos Chave para Campanhas", icons.trendingUp) + `<ul class="list-disc list-inside space-y-1">${keyArgsHtml}</ul>`;
+            
+            // Card de Análise de MQLs
+            const mqlCard = document.getElementById('mqlAnalysisCard');
+            let mqlDistHtml = mqlData.distribution.map(channel => `
+                <li class="flex justify-between items-center">
+                    <span><span class="inline-block w-3 h-3 rounded-full mr-2" style="background-color: ${channel.fill};"></span>${channel.name}:</span>
+                    <span class="font-semibold">${channel.leads} leads (${channel.percentage}%)</span>
+                </li>`).join('');
+            mqlCard.innerHTML = createCardHeader("Análise de Canais de Aquisição de MQLs (HubSpot - Este Ano)", icons.target) + `
+                <p class="mb-4"><strong>Total de Leads Analisados:</strong> ${mqlData.totalLeads}</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div>
+                        <h4 class="text-lg font-semibold text-sky-300 mb-3">Distribuição por Canal Agrupado:</h4>
+                        <ul class="space-y-2">${mqlDistHtml}</ul>
+                    </div>
+                    <div class="chart-container"><canvas id="mqlPieChart"></canvas></div>
+                </div>`;
+            renderMqlPieChart();
+
+            // Card de Distribuição de Idade
+            const ageCard = document.getElementById('ageDistributionCard');
+            ageCard.innerHTML = createCardHeader("Distribuição Estimada de Idade (Público Alvo)", icons.mapPin) + `<div class="chart-container chart-container-large"><canvas id="ageBarChart"></canvas></div>`;
+            renderAgeBarChart();
+
+            // Card de Distribuição de Motivações (Público)
+            const motiDistCard = document.getElementById('motivationDistributionCard');
+            motiDistCard.innerHTML = createCardHeader("Distribuição de Motivações (Público Alvo)", icons.brain) + `<div class="chart-container chart-container-large"><canvas id="motivationPieChart"></canvas></div>`;
+            renderMotivationPieChart();
+
+            // Card de Interesses Diretos
+            const directIntCard = document.getElementById('directInterestsCard');
+            let directIntHtml = audienceData.directInterests.map(interest => createPill(interest, "bg-sky-200 text-sky-900 hover:bg-sky-300")).join('');
+            directIntCard.innerHTML = createCardHeader("Interesses Diretos Identificados", icons.sparkles) + `<div class="flex flex-wrap">${directIntHtml}</div>`;
+            
+            // Card de Interesses Relacionados
+            const relatedIntCard = document.getElementById('relatedInterestsCard');
+            let relatedIntHtml = audienceData.relatedInterests.map(interest => createPill(interest, "bg-teal-200 text-teal-900 hover:bg-teal-300")).join('');
+            relatedIntCard.innerHTML = createCardHeader("Interesses Relacionados Identificados", icons.sparkles) + `<div class="flex flex-wrap">${relatedIntHtml}</div>`;
+
+            // Renderizar Cards de Funcionalidades IA
+            renderAiFeatureCard('aiInterestsFeatureCard', "✨ Gerador de Novos Interesses", icons.brain, fetchAiInterests, "Gerar Novos Interesses");
+            renderAiFeatureCard('aiSlogansFeatureCard', "✨ Gerador de Slogans para Campanhas", icons.megaphone, fetchAiSlogans, "Gerar Slogans Criativos", "italic");
+            renderAiFeatureCard('aiSocialMediaFeatureCard', "✨ Ideias de Conteúdo para Redes Sociais", icons.share2, fetchAiSocialMediaIdeas, "Sugerir Posts Criativos");
+        });
+
+        // --- RENDERIZAÇÃO DOS GRÁFICOS (Chart.js) ---
+        function renderMqlPieChart() {
+            // Removida a primeira instanciação de new Chart que era redundante e poderia causar problemas.
+            // Mantida apenas a segunda instanciação que é a versão corrigida.
+            new Chart(document.getElementById('mqlPieChart').getContext('2d'), { 
+                type: 'pie',
+                data: {
+                    labels: mqlData.distribution.map(d => `${d.name} (${d.percentage}%)`), 
+                    datasets: [{
+                        data: mqlData.distribution.map(d => d.leads),
+                        backgroundColor: mqlData.distribution.map(d => d.fill),
+                        borderColor: '#334155',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#e2e8f0', font: {size: 11} } },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)', titleColor: '#f1f5f9', bodyColor: '#e2e8f0',
+                            callbacks: {
+                                label: function(context) {
+                                    const originalLabel = mqlData.distribution[context.dataIndex].name;
+                                    const value = context.raw;
+                                    const percentage = mqlData.distribution[context.dataIndex].percentage;
+                                    return `${originalLabel}: ${value} leads (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAgeBarChart() {
+            const ctx = document.getElementById('ageBarChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ageData.map(d => d.name),
+                    datasets: [{
+                        label: 'Percentual de Alunos',
+                        data: ageData.map(d => d.Percentual),
+                        backgroundColor: ageData.map(d => d.fill),
+                        borderColor: ageData.map(d => d.fill),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    scales: { x: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(203, 213, 225, 0.2)' } }, y: { ticks: { color: '#cbd5e1' }, grid: { display: false } } },
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)', titleColor: '#f1f5f9', bodyColor: '#e2e8f0',
+                            callbacks: { label: context => `${context.dataset.label}: ${context.raw}%` }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMotivationPieChart() {
+            const ctx = document.getElementById('motivationPieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: motivationData.map(d => d.name),
+                    datasets: [{
+                        data: motivationData.map(d => d.value),
+                        backgroundColor: motivationData.map(d => d.fill),
+                        borderColor: '#334155',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#e2e8f0' } },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)', titleColor: '#f1f5f9', bodyColor: '#e2e8f0',
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) { label += ': '; }
+                                    const value = context.raw;
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(0);
+                                    return `${label}${percentage}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- FUNCIONALIDADES DE IA ---
+        function renderAiFeatureCard(containerId, title, iconSvg, fetchFunction, buttonText, resultItemStyle = "") {
+            const cardContainer = document.getElementById(containerId);
+            cardContainer.innerHTML = `
+                ${createCardHeader(title, iconSvg)}
+                <p class="text-gray-300 mb-4">Clique no botão para usar Inteligência Artificial e gerar ${title.toLowerCase().replace("✨ ", "")}.</p>
+                <button id="btn-${containerId}" class="w-full sm:w-auto bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out flex items-center justify-center">
+                    <span class="btn-icon-ai">${icons.sparkles}</span>
+                    <span class="btn-text-ai ml-2" data-original-text="${buttonText}">${buttonText}</span>
+                </button>
+                <div id="error-${containerId}" class="mt-4 hidden bg-red-700/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg" role="alert"></div>
+                <div id="results-${containerId}" class="mt-6 hidden">
+                    <h4 class="text-lg font-semibold text-sky-300 mb-3">Sugestões da IA:</h4>
+                    <div class="ai-results-list"></div>
+                </div>
+            `;
+            document.getElementById(`btn-${containerId}`).addEventListener('click', () => fetchFunction(containerId, resultItemStyle));
+        }
+
+        async function callGeminiAPI(prompt, containerId, resultItemStyle) {
+            const button = document.getElementById(`btn-${containerId}`);
+            const errorDiv = document.getElementById(`error-${containerId}`);
+            const resultsDiv = document.getElementById(`results-${containerId}`);
+            const resultsList = resultsDiv.querySelector('.ai-results-list');
+            const btnIcon = button.querySelector('.btn-icon-ai');
+            const btnTextSpan = button.querySelector('.btn-text-ai'); // Corrigido para btnTextSpan
+
+            // Start loading
+            btnIcon.innerHTML = icons.loader2;
+            btnIcon.classList.add('animate-spin');
+            btnTextSpan.textContent = 'Gerando...'; // Corrigido para btnTextSpan
+            button.disabled = true;
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+            resultsDiv.classList.add('hidden');
+            resultsList.innerHTML = '';
+
+            try {
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Erro da API Gemini:", errorData);
+                    throw new Error(`Erro da API: ${errorData.error?.message || response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    const itemsArray = text.split(/[\n•*-]+/).map(item => item.trim()).filter(item => item.length > 0 && item.length < 200);
+                    
+                    if (itemsArray.length > 0) {
+                        if (containerId.includes("Interests")) {
+                            resultsList.innerHTML = itemsArray.map(item => createPill(item, "bg-sky-200 text-sky-800 hover:bg-sky-300")).join('');
+                        } else {
+                            resultsList.innerHTML = `<ul class="space-y-2">${itemsArray.map(item => `<li class="bg-slate-700/50 p-3 rounded-md shadow ${resultItemStyle}"><span class="text-gray-100">${item}</span></li>`).join('')}</ul>`;
+                        }
+                        resultsDiv.classList.remove('hidden');
+                    } else {
+                        throw new Error("Nenhuma sugestão válida recebida da IA.");
+                    }
+                } else {
+                    console.error("Estrutura de resposta inesperada da API Gemini:", result);
+                    throw new Error("Não foi possível extrair os dados da resposta da IA.");
+                }
+            } catch (err) {
+                console.error("Falha ao buscar dados da IA:", err);
+                errorDiv.innerHTML = `<strong class="font-bold">Erro!</strong> <span class="block sm:inline">${err.message}</span>`;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                // End loading
+                btnIcon.innerHTML = icons.sparkles;
+                btnIcon.classList.remove('animate-spin');
+                if (btnTextSpan && btnTextSpan.dataset.originalText) { // Corrigido para btnTextSpan
+                    btnTextSpan.textContent = btnTextSpan.dataset.originalText; // Corrigido para btnTextSpan
+                } else if (btnTextSpan) { // Corrigido para btnTextSpan
+                    btnTextSpan.textContent = 'Gerar Novas Sugestões'; // Fallback
+                }
+                button.disabled = false;
+            }
+        }
+
+        function fetchAiInterests(containerId, resultItemStyle) {
+            const baseInterests = audienceData.directInterests.slice(0, 5).join(', ');
+            const prompt = `Com base nos seguintes interesses relacionados à gastronomia e culinária: ${baseInterests}, e considerando o público que busca profissionalização, empreendedorismo ou hobby na área, sugira 7 novos interesses altamente relevantes e específicos que poderiam ser usados para segmentar campanhas de marketing para cursos de gastronomia. Formato: lista de strings, cada string um interesse.`;
+            callGeminiAPI(prompt, containerId, resultItemStyle);
+        }
+
+        function fetchAiSlogans(containerId, resultItemStyle) {
+            const keyArgs = audienceData.keyArguments.join(', ');
+            const motivations = audienceData.motivations.join(', ');
+            const prompt = `Para uma escola de gastronomia com os seguintes argumentos de venda: "${keyArgs}" e que atrai um público com motivações como "${motivations}", crie 5 slogans curtos, criativos e impactantes para campanhas de marketing. Formato: lista de strings, cada string um slogan.`;
+            callGeminiAPI(prompt, containerId, resultItemStyle);
+        }
+
+        function fetchAiSocialMediaIdeas(containerId, resultItemStyle) {
+            const interests = audienceData.directInterests.slice(0, 4).join(', ');
+            const motivations = audienceData.motivations.slice(0, 2).join(', ');
+            const prompt = `Para um público interessado em gastronomia (${interests}) e motivado por ${motivations} a fazer cursos na área, sugira 5 ideias criativas e concisas para posts em redes sociais (Instagram, Facebook) para engajá-los. Formato: lista de strings, cada string uma ideia de post.`;
+            callGeminiAPI(prompt, containerId, resultItemStyle);
+        }
+
+    </script>
+</body>
+</html>
